@@ -1,0 +1,20 @@
+<html>
+    <head>
+        <title>My first WebGL</title>
+        <style>
+            #mycanvas {
+                border-style : solid;
+                border-color : blue;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="mycanvas"></canvas>
+    </body>
+    <script>
+        var canvas = document.getElementById('mycanvas');
+        var gl = canvas.getContext('webgl');
+        gl.clearColor(0,0,0,0.5);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    </script>
+</html>
