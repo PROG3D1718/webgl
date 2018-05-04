@@ -1,0 +1,197 @@
+<html>
+    <head>
+        <title>Color Animation using Fragment Shader</title>
+        <style>
+            #mycanvas {
+                border-style : solid;
+                border-color : blue;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="mycanvas" width="600" height="600"></canvas>
+    </body>
+    <script>
+        // get webgl context
+        var canvas = document.getElementById('mycanvas');
+        var gl = canvas.getContext('webgl');
+
+
+        // define the vertex coordinates
+
+        // vertex array
+        var vertices = [
+            -0.5,  0.5,     // v0
+            -0.5, -0.5,     // v1
+             0.5, -0.5,     // v2
+             0.5,  0.5      // v3
+        ];
+
+        var indices = [
+            0,1,2,
+            0,2,3,
+        ];
+
+        var colors = [
+            1.0, 0.0, 0.0, 1.0, // v0 red
+            0.0, 1.0, 0.0, 1.0, // v1 green
+            0.0, 0.0, 1.0, 1.0, // v2 blue
+            1.0, 1.0, 1.0, 1.0, // v3 white  
+        ]
+
+        // === COORDINATES ===
+        // Create a new buffer object (vertex)
+        var vertex_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        // Pass the vertices data to the buffer
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        // Unbind the buffer
+         gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        // === INDICES ===
+        // Create a new buffer object (indexes)
+        var index_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        // Pass the vertices data to the buffer
+         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+        // Unbind the buffer
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+        // === COLORS ====
+        // Create a new buffer object (indexes)
+        var color_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+        gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+        // Pass the vertices data to the buffer
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        // Unbind the buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+         
+        // === VERTEX SHADER ====
+        // vertex shader code
+         var vertCode = `
+            attribute vec2 coordinates;
+            attribute vec4 vertexColor;
+            
+			varying  vec4 vColor;
+            
+            void main(void) { 
+             gl_Position = vec4(coordinates,0.0, 1.0);
+             vColor = vertexColor;
+            }
+            `;
+        
+        
+        // create the vertex shader
+        var vertShader = gl.createShader(gl.VERTEX_SHADER);
+        // attach the shader code
+        gl.shaderSource(vertShader, vertCode);
+        //Compile the vertex shader
+        gl.compileShader(vertShader);
+
+
+        // === FRAGMENT SHADER ====
+        // fragment shader code
+        var fragCode = `
+        
+        // precision qualifiers are mandatory at fragment shader
+        varying lowp vec4 vColor;
+        uniform lowp float ms;
+
+        void main(void) {
+         //mediump float osc1 = (sin((gl_FragCoord.x+ms/10.0)/2.0) + 1.0) / 2.0;
+         //mediump float osc2 = (sin(ms/800.0) + 1.0) / 2.0;
+         //mediump float osc3 = (sin((gl_FragCoord.y + ms)/2.0) + 1.0) / 2.0;
+
+         //gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+         //gl_FragColor.r = (vColor.r + osc1) / 2.0;
+
+         mediump float redOsc = (sin((ms/100.0+gl_FragCoord.x)/10.0)+1.0) / 2.0;
+         mediump float greenOsc = (sin((ms/50.0+gl_FragCoord.y)/3.0)+1.0) / 2.0;
+         mediump float blueOsc = (sin(ms/200.0)+1.0) / 2.0;
+
+         //gl_FragColor.r = (vColor.r + osc1) / 2.0;
+         gl_FragColor.r =redOsc;
+         gl_FragColor.g = greenOsc;
+         gl_FragColor.b = blueOsc;
+
+         //gl_FragColor.g = (vColor.g + osc2) / 2.0;
+         //gl_FragColor.b = (vColor.b + osc3) / 2.0;
+         gl_FragColor.a = vColor.a;
+         //gl_FragColor = vColor;
+        }
+        `;
+        // create the fragment shader
+        var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+        // attach the fragment shader code
+        gl.shaderSource(fragShader, fragCode);
+        //Compile the fragment shader
+        gl.compileShader(fragShader);
+
+       
+       // === SHADER PROGRAM ====
+       // create the shader program
+        var shaderProgram = gl.createProgram();
+        // Attach a vertex shader
+        gl.attachShader(shaderProgram, vertShader); 
+        // Attach a fragment shader
+        gl.attachShader(shaderProgram, fragShader);
+        // Link both programs
+        gl.linkProgram(shaderProgram);
+        // Use the combined shader program object
+        gl.useProgram(shaderProgram);
+
+        /* Associate the shader programs to buffer objects */
+        //Bind vertex buffer object
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        //Get the attribute location
+        var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+        //point an attribute to the currently bound VBO
+        gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0);
+        //Enable the attribute
+        gl.enableVertexAttribArray(coord);
+
+        //Bind vertex colors buffer object
+        gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+        //Get the attribute location
+        var vertexcolor = gl.getAttribLocation(shaderProgram, "vertexColor");
+        gl.vertexAttribPointer(vertexcolor, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(vertexcolor);
+
+        //Bind index buffer object
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+
+        // define the clear color
+        gl.clearColor(0,0,0,0.5);
+        // Enable the depth test
+        gl.enable(gl.DEPTH_TEST); 
+        // clear the framebuffer (color)
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // Set the view port
+        gl.viewport(0,0,canvas.width,canvas.height);
+
+        var miliseconds = gl.getUniformLocation(shaderProgram, 'ms');
+
+
+        var start = new Date().getTime();
+
+        window.requestAnimationFrame(draw);
+
+        function draw() {
+            deltatime = new Date().getTime() - start;
+            gl.uniform1f(miliseconds, deltatime);
+            console.log(deltatime);
+            // draw the arrays (vertex indices)
+            gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0);
+            window.requestAnimationFrame(draw);
+        }
+
+
+    </script>
+
+
+</html>
