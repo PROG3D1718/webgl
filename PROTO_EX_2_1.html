@@ -1,0 +1,298 @@
+<html>
+    <head>
+        <title>Texture</title>
+        <style>
+            #mycanvas {
+                border-style : solid;
+                border-color : blue;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="mycanvas" width="600" height="600"></canvas>
+    </body>
+    <script>
+        // get webgl context
+        var canvas = document.getElementById('mycanvas');
+        var gl = canvas.getContext('webgl');
+
+
+        // define the vertex coordinates
+        // vertex array
+        // we will duplicate vertex
+
+        var vertices = [
+            // tri house
+            -0.5,  0.5,     // v0
+            -0.5, -0.5,     // v1
+             0.5,  0.5,     // v3
+
+            //tri house
+            -0.5, -0.5,     // v1_1
+             0.5, -0.5,     // v2
+             0.5,  0.5,     // v3_1
+             
+            // tri roof
+            -0.5,  0.5,     // v0
+             0.5,  0.5,     // v3_2
+             0.0,  1.0,      // v4
+             
+             0.5,  0.5,     // v3_3
+             0.5,  0.75,    // v6
+             0.25, 0.75,    // v5
+        ];
+
+        /*
+        // indexed vertex / face : indices
+        var indices = [
+            0,1,2,
+            0,2,3,
+        ];
+        */
+
+        // images are loaded "upside down"
+        // i.e (0,0) pixel is the top left 
+        var texcoords = [
+            0.0, 0.0,
+            0.0, 1.0,
+            1.0, 1.0,
+
+            1.0, 0.0,
+            0.0, 0.0,
+            0.0, 1.0,
+
+            0.0, 0.5,
+            0.5, 0.5,
+            0.25, 0.0,
+
+            0.0, 1.0,
+            1.0, 1.0,
+            1.0, 0.0,
+        ]
+
+        var colors = [
+            1.0, 0.0, 0.0, 1.0, // v0 red
+            0.0, 1.0, 0.0, 1.0, // v1 green
+            0.0, 0.0, 1.0, 1.0, // v2 blue
+            1.0, 1.0, 1.0, 1.0, // v3 white
+            1.0, 0.0, 0.0, 1.0, // v0 red
+            0.0, 1.0, 0.0, 1.0, // v1 green
+            0.0, 0.0, 1.0, 1.0, // v2 blue
+            1.0, 1.0, 1.0, 1.0, // v3 white 
+            1.0, 0.0, 0.0, 1.0, // v0 red
+            0.0, 1.0, 0.0, 1.0, // v1 green
+            0.0, 0.0, 1.0, 1.0, // v2 blue
+            1.0, 1.0, 1.0, 1.0, // v3 white   
+        ]
+
+
+        // === COORDINATES ===
+        // Create a new buffer object (vertex)
+        var vertex_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        // Pass the vertices data to the buffer
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        // Unbind the buffer
+         gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        /*
+        // === INDICES ===
+        // Create a new buffer object (indexes)
+        var index_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        // Pass the vertices data to the buffer
+         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+        // Unbind the buffer
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+         */
+
+        // === COLORS ====
+        // Create a new buffer object (indexes)
+        var color_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+        gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+        // Pass the vertices data to the buffer
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        // Unbind the buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        // === TEXTURE COORDS ====
+        // Create a new buffer object (texcoords)
+        var texcoord_buffer = gl.createBuffer();
+        // Bind an empty array buffer to it
+        gl.bindBuffer(gl.ARRAY_BUFFER, texcoord_buffer);
+        // Pass the vertices data to the buffer
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+        // Unbind the buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
+        // Create a texture.
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+ 
+        // Fill the texture with a 1x1 blue pixel.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+              new Uint8Array([0, 0, 255, 255]));
+
+        // Asynchronously load an image
+        var image = new Image();
+        //image.src = "textures/ECGM.png";
+        //image.src = "textures/mud.jpg";
+        image.src = "textures/house.png";
+        image.addEventListener('load', function() {
+            // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+            if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+                gl.generateMipmap(gl.TEXTURE_2D);
+            } else {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
+        
+            
+            });
+        
+         
+        // === VERTEX SHADER ====
+        // vertex shader code
+         var vertCode = `
+            attribute vec2 coordinates;
+            attribute vec4 vertexColor;
+            attribute vec2 texCoordinates;
+
+            // time reference to animate
+            uniform float ms;
+			varying vec4 vColor;
+            varying vec2 vTexCoordinates;
+            
+            void main(void) { 
+
+            gl_Position = vec4(coordinates,0.0,1.0);
+
+            vColor = vertexColor;
+            vTexCoordinates = texCoordinates;
+            }
+            `;
+        
+        
+        // create the vertex shader
+        var vertShader = gl.createShader(gl.VERTEX_SHADER);
+        // attach the shader code
+        gl.shaderSource(vertShader, vertCode);
+        //Compile the vertex shader
+        gl.compileShader(vertShader);
+
+
+        // === FRAGMENT SHADER ====
+        // fragment shader code
+        var fragCode = `
+        
+        // a precision qualifier is mandatory at the fragment shader
+        varying lowp vec4 vColor;
+        varying lowp vec2 vTexCoordinates;
+
+        // The texture.
+        uniform sampler2D u_texture;
+
+        void main(void) {
+         //gl_FragColor = vColor;
+         gl_FragColor = texture2D(u_texture, vTexCoordinates);
+
+        }
+        `;
+        // create the fragment shader
+        var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+        // attach the fragment shader code
+        gl.shaderSource(fragShader, fragCode);
+        //Compile the fragment shader
+        gl.compileShader(fragShader);
+       
+       // === SHADER PROGRAM ====
+       // create the shader program
+        var shaderProgram = gl.createProgram();
+        // Attach a vertex shader
+        gl.attachShader(shaderProgram, vertShader); 
+        // Attach a fragment shader
+        gl.attachShader(shaderProgram, fragShader);
+        // Link both programs
+        gl.linkProgram(shaderProgram);
+        // Use the combined shader program object
+        gl.useProgram(shaderProgram);
+
+        /* Associate the shader programs to buffer objects */
+        //Bind vertex buffer object
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        //Get the attribute location
+        var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+        //point an attribute to the currently bound VBO
+        gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0);
+        //Enable the attribute
+        gl.enableVertexAttribArray(coord);
+
+        //Bind vertex colors buffer object
+        gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+        //Get the attribute location
+        var vertexcolor = gl.getAttribLocation(shaderProgram, "vertexColor");
+        gl.vertexAttribPointer(vertexcolor, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(vertexcolor);
+
+        // Bind the texture coordinates buffer.
+        gl.bindBuffer(gl.ARRAY_BUFFER, texcoord_buffer);
+        var texcoord = gl.getAttribLocation(shaderProgram, "texCoordinates");
+        // Turn on the texCoordinates attribute
+        gl.vertexAttribPointer(texcoord, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(texcoord);
+
+        /*
+        //Bind index buffer object
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        */
+        
+        // define the clear color
+        gl.clearColor(1.0,1.0,1.0,1.0);
+        // Enable the depth test
+        gl.enable(gl.DEPTH_TEST); 
+        // clear the framebuffer (color)
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // Set the view port
+        gl.viewport(0,0,canvas.width,canvas.height);
+
+        var miliseconds = gl.getUniformLocation(shaderProgram, 'ms');
+
+
+        var start = new Date().getTime();
+
+        //gl.clear(gl.COLOR_BUFFER_BIT);
+        //gl.drawArrays(gl.TRIANGLES, 0, 12);
+
+
+        window.requestAnimationFrame(draw);
+
+        function draw() {
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            deltatime = new Date().getTime() - start;
+            gl.uniform1f(miliseconds, deltatime);
+            //console.log(deltatime);
+            // draw the arrays (vertex indices)
+            gl.drawArrays(gl.TRIANGLES, 0, 12);
+            window.requestAnimationFrame(draw);
+        }
+
+        function isPowerOf2(value) {
+            // bit reprersentations of powerof2 values are  100...0
+            // so value-1 are  011...11 
+            // ant then "bitwise logic and" between value & (value-1) is
+            // 000...0 = 0
+            return (value & (value - 1)) == 0;
+        }
+
+    </script>
+
+
+</html>
